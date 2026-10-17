@@ -1,7 +1,16 @@
 [project]
 name = "mon-ram"
 version = "0.1.0"
-description = "Add your description here"
+description = "Report this machine's RAM usage to Google Cloud Monitoring"
 readme = "README.md"
-requires-python = ">=3.12"
-dependencies = []
+requires-python = ">=3.11"
+dependencies = [
+    "google-auth>=2.62.0",
+    "psutil>=7.2.2",
+    "urllib3>=2.8.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+]
