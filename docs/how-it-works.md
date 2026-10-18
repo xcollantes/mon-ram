@@ -48,13 +48,17 @@ metric descriptors automatically the first time a point arrives.
 
 ## Authentication
 
-`google.auth.default()` finds credentials through
-[Application Default Credentials](https://cloud.google.com/docs/authentication/application-default-credentials):
+At startup, `load_credentials()` loads `.env` with python-dotenv (copy
+`.env.example` to start). Variables already set in the environment win
+over `.env`.
 
-1. `GOOGLE_APPLICATION_CREDENTIALS` points at a service account key file.
-   This is how the Pi and Linux deployments work.
-2. If that isn't set, it falls back to your own `gcloud auth
-   application-default login`, which is handy for a quick local run.
+1. `GOOGLE_APPLICATION_CREDENTIALS` points at a service account key file,
+   which the script loads directly. Set it in `.env` for local runs; the
+   Pi and Linux deployments set it in the service definition.
+2. If that isn't set, it falls back to
+   [Application Default Credentials](https://cloud.google.com/docs/authentication/application-default-credentials),
+   such as your own `gcloud auth application-default login`, which is
+   handy for a quick local run.
 
 The project comes from the key file. To send metrics to a different project,
 set `GOOGLE_CLOUD_PROJECT`. The script only requests the `monitoring.write`

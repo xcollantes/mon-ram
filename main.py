@@ -2,6 +2,7 @@
 
 import json
 import logging
+import os
 import socket
 import time
 from datetime import UTC, datetime
@@ -9,6 +10,7 @@ from typing import Any
 
 import google.auth
 import psutil
+from dotenv import load_dotenv
 from google.auth.exceptions import GoogleAuthError
 from google.auth.transport.urllib3 import AuthorizedHttp
 from google.oauth2 import service_account
@@ -58,12 +60,35 @@ def build_series(
 
     return [
         series("memory_used_percent", {"doubleValue": mem.percent}),
-        # Reason: proto3 JSON encodes int64 as a string.
+        # Self-signed JWT is minted locally, so there is no
+        # hourly round trip to Google's OAuth token endpoint.
         series(
             "memory_used_bytes",
             {"int64Value": str(mem.total - mem.available)},
         ),
     ]
+
+
+def load_credentials() -> tuple[Any, str | None]:
+    """
+    Load GCP credentials, reading GOOGLE_APPLICATION_CREDENTIALS from .env.
+
+    Variables already set in the environment win over .env, so systemd
+    and launchd settings keep working.
+
+    Returns:
+        The scoped credentials and the GCP project ID, if one is known
+    """
+    load_dotenv()
+    key_file = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
+    if key_file:
+        credentials, project_id = google.auth.load_credentials_from_file(
+            key_file, scopes=SCOPES
+        )
+    else:
+        # No key file, so fall back to gcloud user credentials.
+        credentials, project_id = google.auth.default(scopes=SCOPES)
+    return credentials, os.getenv("GOOGLE_CLOUD_PROJECT") or project_id
 
 
 def main() -> None:
@@ -72,14 +97,14 @@ def main() -> None:
         level=logging.INFO,
         format="%(asctime)s: %(name)s: %(levelname)s: %(message)s",
     )
-    credentials, project_id = google.auth.default(scopes=SCOPES)
+    credentials, project_id = load_credentials()
     if not project_id:
         raise SystemExit(
             "No GCP project found: set GOOGLE_CLOUD_PROJECT or use a "
             "service account key via GOOGLE_APPLICATION_CREDENTIALS."
         )
     if isinstance(credentials, service_account.Credentials):
-        # Reason: a self-signed JWT is minted locally, so there is no
+        # Self-signed JWT is minted locally, so there is no
         # hourly round trip to Google's OAuth token endpoint.
         credentials = credentials.with_always_use_jwt_access(True)
     http = AuthorizedHttp(credentials)
