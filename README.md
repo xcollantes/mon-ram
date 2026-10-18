@@ -7,7 +7,8 @@ Pis and other Linux machines outside GCP, and it works on macOS too.
 
 ```bash
 uv sync
-GOOGLE_APPLICATION_CREDENTIALS=key.json uv run main.py
+cp .env.example .env    # then point it at your key
+uv run --env-file .env main.py
 uv run pytest
 ```
 
